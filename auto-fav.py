@@ -13,11 +13,13 @@ game = "H2M"
 #Nothing personal, I just dont have good ping to those regions + Trickshotting is not for me
 #Pinging every server would take too long since theres 250 of them and this does the job
 #Blacklisted Hosts
+#should be lowercase
 blacklist = ["latam","asia","[au]","au/nz","xevnet.au","na south","oce","trickshot","(au)"]
 filterFromName = ["^:","^1","^2","^3","^4","^5","^6","^7","^8","^9","^0"]
 #A bit more personal :), had good experiences
 #Whitelisted Hosts
-whitelist = ["[hgm]","hazeynetwork","zedkaysserver","EU","uk","op gold","[bnuk]","freak of duty","cws"]
+#should be lowercase
+whitelist = ["[hgm]","hazeynetwork","zedkaysserver","eu","uk","op gold","[bnuk]","freak of duty","cws"]
 
 #minimal player count, only so many servers can fit
 #used only on live data

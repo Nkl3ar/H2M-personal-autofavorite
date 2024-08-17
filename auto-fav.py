@@ -32,7 +32,7 @@ def update_list():
     #minimum amount of free slots
     minFreeSlots = 1
     #for servers that have some slots for premium members, to be filled as i discover
-    privilegedHosts = ["h2m-fr","mw2 remasterd srv"]
+    privilegedHosts = ["h2m-fr","mw2 remasterd"]
     privilegedMinFreeSlots = 5
 
     #personal list, for context im from eu

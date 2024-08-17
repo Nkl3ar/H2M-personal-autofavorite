@@ -9,23 +9,29 @@ def de_dupe(x):
 
 # its H2M because its loading all the H2M servers
 game = "H2M"
-
-#Nothing personal, I just dont have good ping to those regions + Trickshotting is not for me
-#Pinging every server would take too long since theres 250 of them and this does the job
-#Blacklisted Hosts
-#should be lowercase
-blacklist = ["latam","asia","[au]","au/nz","xevnet.au","na south","oce","trickshot","(au)"]
+#special characters to get rid of
 filterFromName = ["^:","^1","^2","^3","^4","^5","^6","^7","^8","^9","^0"]
-#A bit more personal :), had good experiences
-#Whitelisted Hosts
-#should be lowercase
-whitelist = ["[hgm]","hazeynetwork","zedkaysserver","eu","uk","op gold","[bnuk]","freak of duty","cws"]
 
-#minimal player count, only so many servers can fit
+#Blacklisted and Whitelisted Hosts
+#Whitelisted will always appear unless filtered out by low player counts
+#should be lowercase
+blacklist = []
+whitelist = []
+
+#minimal player count
+#note, it will be slightly inaccurate, master server data is up to 30 secs out of date
 #used only on live data
 limitPlayerCount=True
 minPlayers = 3
 maxPlayers = 18
+
+#personal list, for context im from eu
+#I just dont have good ping to those regions + Trickshotting is not for me
+#blacklist = ["latam","asia","[au]","au/nz","xevnet.au","na south","oce","trickshot","(au)"]
+#hosts i had good prior experiences with + decent ping
+#whitelist = ["[hgm]","hazeynetwork","zedkaysserver","eu","uk","op gold","[bnuk]","freak of duty","cws"]
+
+
 
 #Header to bypass 403 forbidden
 header = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',

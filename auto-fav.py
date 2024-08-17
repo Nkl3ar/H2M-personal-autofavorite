@@ -23,7 +23,9 @@ whitelist = ["[hgm]","hazeynetwork","zedkaysserver","eu","uk","op gold","[bnuk]"
 
 #minimal player count, only so many servers can fit
 #used only on live data
-minPlayers = 4
+limitPlayerCount=True
+minPlayers = 3
+maxPlayers = 18
 
 #Header to bypass 403 forbidden
 header = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
@@ -49,7 +51,7 @@ else:
     # opening the url
     
     IW4MadminURL = "https://master.iw4.zip/instance/"
-    print("Attempting to connect to the iw4madmin master server...\n")
+    print("Attempting to connect to the iw4madmin master server...")
     #IW4MadminURL = "http://api.raidmax.org:5000/instance/"
     #IW4MadminResponse = urllib.request.urlopen(IW4MadminURL)
     IW4MadminURL = "https://master.iw4.zip/instance/"
@@ -57,7 +59,10 @@ else:
     IW4MadminResponse = urlopen(IW4MadminRequest)
     # parsing the json and storing it
     IW4MadminData = json.loads(IW4MadminResponse.read())
-    print("Successfully connected and loaded data, minimum playercount of {} will be enforced\n".format(minPlayers))
+    print("Successfully connected and loaded data")
+    if(limitPlayerCount):
+        print("Minimum playercount of {} will be enforced".format(minPlayers))
+        print("Maximum playercount of {} will be enforced\n".format(maxPlayers))
 
 
 
@@ -74,8 +79,11 @@ for data in IW4MadminData:
         if(server["game"]==game):
             fullServerCount+=1
             #we check the playercount
-            if(server["clientnum"]<minPlayers) and not isLocal:
-                continue
+            if not isLocal and limitPlayerCount:
+                if(server["clientnum"]<=minPlayers):
+                    continue
+                if(server["clientnum"]>=maxPlayers):
+                    continue
             # we check the host name
             hostnameCheck = server["hostname"].lower()
             blacklisted = False
@@ -125,9 +133,3 @@ f = open("players2/favorites.json", "w")
 f.writelines(str(de_duped).replace("', '",'","').replace("']",'"]').replace("['",'["'))
 f.close()
 print("Saved {} servers to players2/favourites.json".format(len(de_duped)))
-
-    
-
-
-    
-

@@ -12,7 +12,7 @@ def update_list():
     # its H2M because its loading all the H2M servers
     game = "H2M"
     #special characters to get rid of
-    filterFromName = ["^:","^1","^2","^3","^4","^5","^6","^7","^8","^9","^0"]
+    filterFromName = ["^:","^1","^2","^3","^4","^5","^6","^7","^8","^9","^0","^"]
 
     #Blacklisted and Whitelisted Hosts
     #Whitelisted will always appear unless filtered out by low player counts
@@ -30,16 +30,28 @@ def update_list():
     #minimum amount of players on a server
     minPlayers = 3
     #minimum amount of free slots
-    minFreeSlots = 1
+    minFreeSlots = 2
     #for servers that have some slots for premium members, to be filled as i discover
     privilegedHosts = ["h2m-fr","mw2 remasterd"]
-    privilegedMinFreeSlots = 5
+    privilegedMinFreeSlots = 4
+    #Completely ignore servers outside of bounds or add to the list at lowest priority
+    DiscardFailedLimit=False
+    #Servers with premimum member slots but fail the minimal count are usually more worthless
+    #Than other servers
+    LowestPriorityFailedPrivMinFree=True
+    #If Whitelisted should get preferential treatment, will not override priviliged low priority
+    PreferWhitelisted=False
+    
+    #There is a 100 server display limit list on the server browser
+    #But some servers dont show up there
+    #I'm using 110 because the edge case of all 100 servers showing up is rather low
+    saveServerCount = 110
 
     #personal list, for context im from eu
     #I just dont have good ping to those regions + Trickshotting is not for me
-    blacklist = ["latam","asia","[au]","au/nz","xevnet.au","na south","oce","trickshot","(au)"]
+    #blacklist = ["latam","asia","[au]","au/nz","xevnet.au","na south","oce","trickshot","(au)","snipers only","[na-west]","mw2og","CN"]
     #hosts i had good prior experiences with + decent ping
-    whitelist = ["[hgm]","hazeynetwork","zedkaysserver","eu","uk","op gold","[bnuk]","freak of duty","cws"]
+    #whitelist = ["[hgm]","hazeynetwork","zedkaysserver","eu","uk","op gold","[bnuk]","freak of duty","cws","MysteriousRyan","CRWN"]
 
 
 
@@ -75,6 +87,7 @@ def update_list():
         IW4MadminResponse = urlopen(IW4MadminRequest)
         # parsing the json and storing it
         IW4MadminData = json.loads(IW4MadminResponse.read())
+        random.shuffle(IW4MadminData)
         print("Successfully connected and loaded data")
         if(limitPlayerCount):
             print("Minimum playercount: {}".format(minPlayers))
@@ -86,6 +99,9 @@ def update_list():
 
     ips = []    #Nonwhitelisted hosters
     ipsWhitelist = [] #Whitelisted hosters
+    ipsFailedLimit = [] #failed to reach the limit
+    ipsWhitelistFailedLimit = []
+    ipsPrivFailedLimit = []
     fullServerCount = 0
     print("Combing through the data...\n")
     # iterating over all the data
@@ -95,31 +111,58 @@ def update_list():
             # if we stumble upon a H2M gameserver
             if(server["game"]==game):
                 fullServerCount+=1
-                #we check the playercount
-                if not isLocal and limitPlayerCount:
-                    if(server["clientnum"]<=minPlayers):
-                        continue
-                    if(server["maxclientnum"]-server["clientnum"]<=minFreeSlots):
-                        continue
-                # we check the host name
+                #we check the hostname
                 hostnameCheck = server["hostname"].lower()
+                ip = server["ip"]+":"+str(server["port"])
                 blacklisted = False
                 whitelisted = False
                 for undesirable in filterFromName: #Remove special characters
                     hostnameCheck = hostnameCheck.replace(undesirable, '')
                 blacklisted = any(ele in hostnameCheck for ele in blacklist)
-                if blacklisted:
-                    continue
-                privileged = any(ele in hostnameCheck for ele in privilegedHosts)
-                if privileged and not isLocal and limitPlayerCount:
-                    if(server["maxclientnum"]-server["clientnum"]<=privilegedMinFreeSlots):
-                        continue
                 whitelisted = any(ele in hostnameCheck for ele in whitelist)
+                privileged = any(ele in hostnameCheck for ele in privilegedHosts)
+                #if its a blacklisted host, ignore
+                if blacklisted:
+                    continue   
+                #we check the playercount
                 if whitelisted:
+                    if not isLocal and limitPlayerCount:
+                        if(server["clientnum"]<=minPlayers):
+                            if PreferWhitelisted:
+                                ipsWhitelistFailedLimit.append(ip)
+                            else:
+                                ipsFailedLimit.append(ip)
+                            continue
+                        if(server["maxclientnum"]-server["clientnum"]<=privilegedMinFreeSlots) and privileged:
+                            if PreferWhitelisted:
+                                ipsWhitelistFailedLimit.append(ip)
+                            else:
+                                ipsFailedLimit.append(ip)
+                            continue
+                        if(server["maxclientnum"]-server["clientnum"]<=minFreeSlots):
+                            if LowestPriorityFailedPrivMinFree:
+                                ipsPrivFailedLimit.append(ip)
+                            elif PreferWhitelisted:
+                                ipsWhitelistFailedLimit.append(ip)
+                            else:
+                                ipsFailedLimit.append(ip)
+                            continue
                     ip = server["ip"]+":"+str(server["port"])
                     ipsWhitelist.append(ip)
                     continue
-                ip = server["ip"]+":"+str(server["port"])
+                if not isLocal and limitPlayerCount:
+                    if(server["clientnum"]<=minPlayers):
+                        ipsFailedLimit.append(ip)
+                        continue
+                    if(server["maxclientnum"]-server["clientnum"]<=privilegedMinFreeSlots) and privileged:
+                        if LowestPriorityFailedPrivMinFree:
+                                ipsPrivFailedLimit.append(ip)
+                        else:
+                            ipsFailedLimit.append(ip)
+                        continue
+                    if(server["maxclientnum"]-server["clientnum"]<=minFreeSlots):
+                        ipsFailedLimit.append(ip)
+                        continue
                 ips.append(ip)
 
 
@@ -130,22 +173,19 @@ def update_list():
        os.makedirs("players2")
     print("Found {} servers, filtered down to {}".format(fullServerCount,len(ips)+len(ipsWhitelist)))
     # There is a 100 display limit, we gotta make sure we're under it otherwise weird stuff happens
-    print("{} whitelisted, trimming total list to 100".format(len(ipsWhitelist)))
-    random.shuffle(ipsWhitelist)
-    random.shuffle(ips)
+    print("{} whitelisted, trimming total list".format(len(ipsWhitelist)))
     ipFiltered = []
-    if(len(ipsWhitelist)>100):
-        ipFiltered = ipsWhitelist[:100]
-    else:
-        N = 100 - len(ipsWhitelist)
-        ipFiltered = ipsWhitelist + ips[:N]
+    ipFiltered = ipsWhitelist + ips
+    if not DiscardFailedLimit:
+        ipFiltered = ipFiltered + ipsWhitelistFailedLimit+ ipsFailedLimit + ipsPrivFailedLimit
+        
 
     # now we just write into the favorite servers file
     # and thats it
 
     # yes i know there's a better way but i want to play as well
-    #Last sanity check for dupes, leftover just in case
-    de_duped=de_dupe(ipFiltered)
+    #Last sanity check for dupes, leftover just in case + trimming list
+    de_duped=de_dupe(ipFiltered[:saveServerCount])
     #eh just in case it's region/locale dependant
     f = open("players2/favourites.json", "w")
     f.writelines(str(de_duped).replace("', '",'","').replace("']",'"]').replace("['",'["'))
@@ -158,3 +198,4 @@ def update_list():
 if __name__ == "__main__":
     while True:
         update_list()
+        time.sleep(random.randrange(31, 120)) #Big range as to not spam the server needlessly, also servers send out another heartbeat every 30 secs
